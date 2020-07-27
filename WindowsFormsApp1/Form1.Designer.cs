@@ -49,6 +49,7 @@
             this.überpopulierenMöglichToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.codeTestToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.shelterToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.eigeneEingabenToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.vorlagenToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.klassischToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
             this.trueConstantsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -983,11 +984,9 @@
             this.Generation_Counter_label = new System.Windows.Forms.Label();
             this.Randomize = new System.Windows.Forms.Button();
             this.Tick = new System.Windows.Forms.Button();
-            this.cartesianChart1 = new LiveCharts.WinForms.CartesianChart();
             this.Random_Symm_button = new System.Windows.Forms.Button();
             this.GameMode_label = new System.Windows.Forms.Label();
             this.GameMode_label_Name = new System.Windows.Forms.Label();
-            this.YAxis_labelName = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
             this.Randomize_xy_Symm_button = new System.Windows.Forms.Button();
             this.button_submit_template = new System.Windows.Forms.Button();
@@ -996,6 +995,8 @@
             this.label3 = new System.Windows.Forms.Label();
             this.AvgGradientSum = new System.Windows.Forms.Label();
             this.Randomxysymmsmall = new System.Windows.Forms.Button();
+            this.RandomFull_button = new System.Windows.Forms.Button();
+            this.YAxisComboBox = new System.Windows.Forms.ComboBox();
             this.menuStrip1.SuspendLayout();
             this.panel1.SuspendLayout();
             this.SuspendLayout();
@@ -1110,7 +1111,8 @@
             this.wenigHungerToolStripMenuItem,
             this.überpopulierenMöglichToolStripMenuItem,
             this.codeTestToolStripMenuItem,
-            this.shelterToolStripMenuItem});
+            this.shelterToolStripMenuItem,
+            this.eigeneEingabenToolStripMenuItem});
             this.modifiziertToolStripMenuItem.Name = "modifiziertToolStripMenuItem";
             this.modifiziertToolStripMenuItem.Size = new System.Drawing.Size(131, 22);
             this.modifiziertToolStripMenuItem.Text = "Modifiziert";
@@ -1156,6 +1158,13 @@
             this.shelterToolStripMenuItem.Size = new System.Drawing.Size(203, 22);
             this.shelterToolStripMenuItem.Text = "Shelter";
             this.shelterToolStripMenuItem.Click += new System.EventHandler(this.ShelterToolStripMenuItem_Click);
+            // 
+            // eigeneEingabenToolStripMenuItem
+            // 
+            this.eigeneEingabenToolStripMenuItem.Name = "eigeneEingabenToolStripMenuItem";
+            this.eigeneEingabenToolStripMenuItem.Size = new System.Drawing.Size(203, 22);
+            this.eigeneEingabenToolStripMenuItem.Text = "Eigene Eingaben";
+            this.eigeneEingabenToolStripMenuItem.Click += new System.EventHandler(this.eigeneEingabenToolStripMenuItem_Click);
             // 
             // vorlagenToolStripMenuItem
             // 
@@ -11278,7 +11287,7 @@
             // 
             // generationTimEr
             // 
-            this.generationTimEr.Interval = 10;
+            this.generationTimEr.Interval = 5;
             this.generationTimEr.Tick += new System.EventHandler(this.Timer1_Tick);
             // 
             // Generation_Name_label
@@ -11331,15 +11340,6 @@
             this.Tick.UseVisualStyleBackColor = true;
             this.Tick.Click += new System.EventHandler(this.Tick_Click);
             // 
-            // cartesianChart1
-            // 
-            this.cartesianChart1.BackColor = System.Drawing.SystemColors.WindowFrame;
-            this.cartesianChart1.Location = new System.Drawing.Point(707, 327);
-            this.cartesianChart1.Name = "cartesianChart1";
-            this.cartesianChart1.Size = new System.Drawing.Size(350, 169);
-            this.cartesianChart1.TabIndex = 16;
-            this.cartesianChart1.Text = "cartesianChart1";
-            // 
             // Random_Symm_button
             // 
             this.Random_Symm_button.Location = new System.Drawing.Point(21, 252);
@@ -11370,16 +11370,6 @@
             this.GameMode_label_Name.Size = new System.Drawing.Size(86, 22);
             this.GameMode_label_Name.TabIndex = 19;
             this.GameMode_label_Name.Text = "Klassisch";
-            // 
-            // YAxis_labelName
-            // 
-            this.YAxis_labelName.AutoSize = true;
-            this.YAxis_labelName.Font = new System.Drawing.Font("Microsoft YaHei", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.YAxis_labelName.Location = new System.Drawing.Point(701, 308);
-            this.YAxis_labelName.Name = "YAxis_labelName";
-            this.YAxis_labelName.Size = new System.Drawing.Size(72, 16);
-            this.YAxis_labelName.TabIndex = 20;
-            this.YAxis_labelName.Text = "# Am Leben";
             // 
             // label2
             // 
@@ -11457,12 +11447,34 @@
             this.Randomxysymmsmall.UseVisualStyleBackColor = true;
             this.Randomxysymmsmall.Click += new System.EventHandler(this.Randomxysymmsmall_Click);
             // 
+            // RandomFull_button
+            // 
+            this.RandomFull_button.Location = new System.Drawing.Point(21, 405);
+            this.RandomFull_button.Name = "RandomFull_button";
+            this.RandomFull_button.Size = new System.Drawing.Size(132, 23);
+            this.RandomFull_button.TabIndex = 30;
+            this.RandomFull_button.Text = "Small Rnd Full";
+            this.RandomFull_button.UseVisualStyleBackColor = true;
+            this.RandomFull_button.Click += new System.EventHandler(this.RandomFull_button_Click);
+            // 
+            // YAxisComboBox
+            // 
+            this.YAxisComboBox.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.YAxisComboBox.FormattingEnabled = true;
+            this.YAxisComboBox.Location = new System.Drawing.Point(688, 306);
+            this.YAxisComboBox.Name = "YAxisComboBox";
+            this.YAxisComboBox.Size = new System.Drawing.Size(126, 23);
+            this.YAxisComboBox.TabIndex = 29;
+            this.YAxisComboBox.SelectedIndexChanged += new System.EventHandler(this.YAxisComboBox_SelectedIndexChanged);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.SystemColors.WindowFrame;
             this.ClientSize = new System.Drawing.Size(1141, 672);
+            this.Controls.Add(this.RandomFull_button);
+            this.Controls.Add(this.YAxisComboBox);
             this.Controls.Add(this.Randomxysymmsmall);
             this.Controls.Add(this.AvgGradientSum);
             this.Controls.Add(this.label3);
@@ -11471,11 +11483,9 @@
             this.Controls.Add(this.button_submit_template);
             this.Controls.Add(this.Randomize_xy_Symm_button);
             this.Controls.Add(this.label2);
-            this.Controls.Add(this.YAxis_labelName);
             this.Controls.Add(this.GameMode_label_Name);
             this.Controls.Add(this.GameMode_label);
             this.Controls.Add(this.Random_Symm_button);
-            this.Controls.Add(this.cartesianChart1);
             this.Controls.Add(this.Tick);
             this.Controls.Add(this.Randomize);
             this.Controls.Add(this.Generation_Counter_label);
@@ -12415,7 +12425,6 @@
         private System.Windows.Forms.Label Generation_Counter_label;
         private System.Windows.Forms.Button Randomize;
         private System.Windows.Forms.Button Tick;
-        private LiveCharts.WinForms.CartesianChart cartesianChart1;
         private System.Windows.Forms.ToolStripMenuItem versionToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem klassischToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem modifiziertToolStripMenuItem;
@@ -12451,7 +12460,6 @@
         private System.Windows.Forms.ToolStripMenuItem ansichtToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem akkuratToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem designerToolStripMenuItem;
-        private System.Windows.Forms.Label YAxis_labelName;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.Button Randomize_xy_Symm_button;
         private System.Windows.Forms.ToolStripMenuItem wasIstDasGameOfLifeToolStripMenuItem;
@@ -12467,6 +12475,9 @@
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.Label AvgGradientSum;
         private System.Windows.Forms.Button Randomxysymmsmall;
+        private System.Windows.Forms.Button RandomFull_button;
+        private System.Windows.Forms.ToolStripMenuItem eigeneEingabenToolStripMenuItem;
+        private System.Windows.Forms.ComboBox YAxisComboBox;
     }
 }
 

@@ -70,8 +70,8 @@ namespace WindowsFormsApp1
                     version = 0;
                     gamemode = RuleSetOriginal;
                     GameMode_label_Name.Text = "Klassisch";
-                    YAxis_labelName.Text = "# Am Leben";
-                    tickdelegate = TimerOnTick;
+                    //YAxisComboBox.= "# Am Leben";
+                    
 
 
                 }
@@ -81,8 +81,8 @@ namespace WindowsFormsApp1
                 version = 0;
                 gamemode = RuleSetOriginal;
                 GameMode_label_Name.Text = "Klassisch";
-                YAxis_labelName.Text = "# Am Leben";
-                tickdelegate = TimerOnTick;
+                //YAxis_labelName.Text = "# Am Leben";
+               
 
             }
         }
@@ -94,7 +94,7 @@ namespace WindowsFormsApp1
             {
                 if (ResetGame())
                 {
-                    YAxis_labelName.Text = "Summe der Gradienten";
+                    //YAxis_labelName.Text = "Summe der Gradienten";
                     GameMode_label_Name.Text = "Modified (Main)";
                     ModifiedGameSettingsChange();
                     gamemode = RuleSetModifiedMain;
@@ -102,7 +102,8 @@ namespace WindowsFormsApp1
             }
             else
             {
-                YAxis_labelName.Text = "Summe der Gradienten";
+               // YAxisComboBox.TextChanged += 
+                //YAxis_labelName.Text = "Summe der Gradienten";
                 GameMode_label_Name.Text = "Modified (Main)";
                 ModifiedGameSettingsChange();
                 gamemode = RuleSetModifiedMain;

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using LiveCharts;
 using LiveCharts.Wpf;
 using LiveCharts.Configurations;
@@ -46,11 +47,11 @@ namespace WindowsFormsApp1
 
         DateTime time_start;        //Statistics
         int stat_alivecount = 0;
-        int stat_gradientsum_all = 0;
+        long stat_gradientsum_all = 0;
 
         int stat_alivegradient_sum = 0;
 
-        Color[] colorgrid = new Color[900];         //Handles Gridlogic
+        
         byte[] bytegrid = new byte[900];
 
         byte[] bytegrid_new = new byte[900];
@@ -71,6 +72,8 @@ namespace WindowsFormsApp1
         byte[] neighbors_gradient_sum = new byte[900];
         bool[] isalive = new bool[900];
 
+
+
         public struct GameState
         { // Doppelt gemoppelt, weil ansonsten unnötiger Zeitaufwand. Wird für Speicherung der Daten genutzt.
 
@@ -86,7 +89,7 @@ namespace WindowsFormsApp1
             public DateTime time_start;        //Statistics
             public int stat_alivecount;
             public int stat_alivegradient_sum;
-            public int stat_gradientsum_all;
+            public long stat_gradientsum_all;
             public Color[] colorgrid;         //Handles Gridlogic
             public byte[] bytegrid;
             public byte[] bytegrid_new;
@@ -101,21 +104,23 @@ namespace WindowsFormsApp1
             public byte[] neighbors_gradient_sum;
             public bool[] isalive;
 
+
+
         }
         GameState gamestate;
         
 
 
-        public ChartValues<MeasureModel> ChartValues { get; set; }      //ConstantChanges Graph
+       
 
         public Form1()
         {
-        
+           //DoubleBuffered = true;
             InitializeComponent();
             
-            ConstantChanges();
+            
             gamemode = RuleSetOriginal;
-            tickdelegate = TimerOnTick;
+            
             designer_delegate = UpdateColorAll;
 
 
@@ -129,91 +134,19 @@ namespace WindowsFormsApp1
         {
             InitButtonArray();
             InitNeighbors();
-            InitColorgrid();
+
             InitVorlagenToolstrip();
             gamestate = GetGameState();
             button_submit_template.Hide();
             label1.Hide();
+            this.YAxisComboBox.Items.AddRange(new string[] { "Am Leben", "Summe Gradienten", "Gradienten Schnitt", "Keins" });
+            YAxisComboBox.SelectedItem = "Am Leben";
+            YAxisComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
+            ControlTextBox.ReadOnly = true;
 
-
-            
-    }
-        //Graph Start
-        ///<summary>
-        ///Main Part of Copied Code Handling Graph
-        ///</summary>
-        private void ConstantChanges()
-        {
-            //ConstantChangesStart
-            var mapper = Mappers.Xy<MeasureModel>()
-               .X(model => model.DateTime.Ticks)   //use DateTime.Ticks as X
-               .Y(model => model.Value);           //use the value property as Y
-            //lets save the mapper globally.
-            Charting.For<MeasureModel>(mapper);
-            //the ChartValues property will store our values array
-            ChartValues = new ChartValues<MeasureModel>();
-            cartesianChart1.Series = new SeriesCollection
-            {
-                new LineSeries
-                {
-                    Values = ChartValues,
-                    PointGeometrySize = 3,
-                    StrokeThickness = 3
-                },
-            };
-            cartesianChart1.AxisX.Add(new Axis
-            {
-                DisableAnimations = true,
-                LabelFormatter = value => new DateTime((long)value).ToString("mm:ss"),
-                Separator = new Separator
-                {
-                    Step = TimeSpan.FromSeconds(1).Ticks
-                }
-            });
-            SetAxisLimits(DateTime.Now);
-            //ConstantChangesEnds
+        
         }
-        ///<summary>
-        ///Part of Copied Code Handling Graph
-        ///</summary>
-        private void SetAxisLimits(DateTime now)
-        {
-            cartesianChart1.AxisX[0].MaxValue = now.Ticks + TimeSpan.FromSeconds(1).Ticks; // lets force the axis to be 100ms ahead
-            cartesianChart1.AxisX[0].MinValue = now.Ticks - TimeSpan.FromSeconds(8).Ticks; //we only care about the last 8 seconds
-        }
-        ///<summary>
-        ///Part of Copied Code Handling Graph
-        ///</summary>
-        private void TimerOnTick(object sender, EventArgs eventArgs)
-        {
-            var now = DateTime.Now;
-            ChartValues.Add(new MeasureModel
-            {
-                DateTime = now,
-                Value = stat_alivecount
-            });
-            SetAxisLimits(now);
-            //lets only use the last 50 values
-            if (ChartValues.Count > 100
-                ) ChartValues.RemoveAt(0);
-        }
-        ///<summary>
-        ///Part of Copied Code Handling Graph
-        ///</summary>
-        private void ModifiedTimerOnTick(object sender, EventArgs eventArgs)
-        {
-            var now = DateTime.Now;
-            ChartValues.Add(new MeasureModel
-            {
-                DateTime = now,
-                Value = stat_alivegradient_sum
-            });
-            SetAxisLimits(now);
-            //lets only use the last 50 values
-            if (ChartValues.Count > 70
-                ) ChartValues.RemoveAt(0);
-        }
-        //Graph End
+        
 
         private void InitVorlagenToolstrip() 
         {
@@ -342,6 +275,7 @@ namespace WindowsFormsApp1
                 {
                     buttons[i].BackColor = ByteToColor(bytegrid[i]);
                 }
+                gameexists = true;
             }
             
             else MessageBox.Show("Es wurde kein Ordner mit dem Namen \"Vorlagen\" gefunden.");
@@ -349,16 +283,7 @@ namespace WindowsFormsApp1
 
         }
         
-        ///<summary>
-        ///Initiates the Colorgrid. all deadwhite
-        ///</summary>
-        public void InitColorgrid()
-        {
-            for (int i = 0; i < 900; i++)
-            {
-                colorgrid[i] = dead_white;
-            }
-        }
+        
         ///<summary>
         ///Returns the corresponding color of the byte, 1 = white, 2=...
         ///</summary>
@@ -489,7 +414,7 @@ namespace WindowsFormsApp1
                 stat_alivecount = DeepCopy(stat_alivecount),
                 stat_alivegradient_sum = DeepCopy(stat_alivegradient_sum),
                 stat_gradientsum_all = stat_gradientsum_all,
-                colorgrid = DeepCopy(colorgrid),
+               
                 bytegrid = DeepCopy(bytegrid),
                 bytegrid_new = DeepCopy(bytegrid_new),
                 bytegrid_haschanged = DeepCopy(bytegrid_haschanged),
@@ -563,7 +488,7 @@ namespace WindowsFormsApp1
             stat_alivecount = DeepCopy(gstate.stat_alivecount);
             stat_alivegradient_sum = DeepCopy(gstate.stat_alivegradient_sum);
             stat_gradientsum_all = gstate.stat_gradientsum_all;
-            colorgrid = DeepCopy(gstate.colorgrid);
+         
             bytegrid = DeepCopy(gstate.bytegrid);
             bytegrid_new = DeepCopy(gstate.bytegrid_new);
             bytegrid_haschanged = DeepCopy(gstate.bytegrid_haschanged);
@@ -647,14 +572,14 @@ namespace WindowsFormsApp1
             {
 
                 aliveneighbors_count[neighbors[buttonnumber, i]]--;
-                if(aliveneighbors_count[neighbors[buttonnumber, i]] == 0)
-                    hasaliveneighbors[neighbors[buttonnumber, i]] = false;
+                
+                    hasaliveneighbors[neighbors[buttonnumber, i]] = !(aliveneighbors_count[neighbors[buttonnumber, i]] == 0);
             }
         }
         ///<summary>
         ///inc stat_alivegradientsum[] and for all 8 nbors: nbgradsum[]++; hasAlv_nbors[] =true;
         ///</summary>
-        private void NeighborGradientSumInc(int buttonnumber)
+        private bool NeighborGradientSumInc(int buttonnumber)
         {
             stat_alivegradient_sum++;
                 for(int i = 0; i<8; i++)
@@ -663,20 +588,23 @@ namespace WindowsFormsApp1
                     neighbors_gradient_sum[neighbors[buttonnumber, i]]++;
                 
                 }
+            return true;
         }
         ///<summary>
         /// <para>dec stat_alivegradientsum[] and for all 8 nbors: nbgradsum[nbor]--; </para>
         /// <para>if(ngradsum[] = 0)hasAlv_nbors[] =false;</para>
         ///</summary>
-        private void NeighborGradientSumDec(int buttonnumber)
+        private bool NeighborGradientSumDec(int buttonnumber)
         {
             stat_alivegradient_sum--;
             for (int i = 0; i < 8; i++)
             {
                 neighbors_gradient_sum[neighbors[buttonnumber, i]]--;
-                if (neighbors_gradient_sum[neighbors[buttonnumber, i]] == 0)
-                    hasaliveneighbors[neighbors[buttonnumber, i]] = false;
+                hasaliveneighbors[neighbors[buttonnumber, i]] = !(neighbors_gradient_sum[neighbors[buttonnumber, i]] == 0);
+                    
+                
             }
+            return true;
         }
 
         private void BorderlessButton_Click_All(object sender, MouseEventArgs e)
@@ -694,6 +622,7 @@ namespace WindowsFormsApp1
                 {
                     ((BorderlessButton)sender).BackColor = full_black;
                     bytegrid[bnumber] = 4;
+                    bytegrid_new[bnumber] = 4;
                     IsAliveAndStatInc(bnumber);
                     AliveNeighborsIncBool(bnumber);
 
@@ -702,6 +631,7 @@ namespace WindowsFormsApp1
                 {
                     ((BorderlessButton)sender).BackColor = dead_white;
                     bytegrid[bnumber] = 0;
+                    bytegrid_new[bnumber] = 0;
                     AliveNeighborsDecBool(bnumber);
                     IsNotAliveAndStatDec(bnumber);
                 }
@@ -710,13 +640,14 @@ namespace WindowsFormsApp1
             {
                 ((BorderlessButton)sender).BackColor = mygrey1;
                 bytegrid[bnumber] = 1;
+                bytegrid_new[bnumber] = 1;
                 ModifiedButtonIncGeneralized(bnumber);
             }
             else if (((BorderlessButton)sender).BackColor == mygrey1)
             {
                 ((BorderlessButton)sender).BackColor = mygrey2;
                 bytegrid[bnumber] = 2;
-
+                bytegrid_new[bnumber] = 2;
                 ModifiedButtonIncGeneralized(bnumber);
 
             }
@@ -724,6 +655,7 @@ namespace WindowsFormsApp1
             {
                 ((BorderlessButton)sender).BackColor = mygrey3;
                 bytegrid[bnumber] = 3;
+                bytegrid_new[bnumber] = 3;
                 DesignerNeighborsInc(bnumber);
                 ModifiedButtonIncGeneralized(bnumber);
 
@@ -732,6 +664,7 @@ namespace WindowsFormsApp1
             {
                 ((BorderlessButton)sender).BackColor = full_black;
                 bytegrid[bnumber] = 4;
+                bytegrid_new[bnumber] = 4;
                 DesignerNeighborsInc(bnumber);
                 ModifiedButtonIncGeneralized(bnumber);
 
@@ -740,6 +673,7 @@ namespace WindowsFormsApp1
             {
                 ((BorderlessButton)sender).BackColor = dead_white;
                 bytegrid[bnumber] = 0;
+                bytegrid_new[bnumber] = 0;
                 DesignerNeighborsDec(bnumber);
                 AliveNeighborsDecBool(bnumber);
                 IsNotAliveAndStatDec(bnumber);
@@ -766,117 +700,129 @@ namespace WindowsFormsApp1
         }
 
         ///<summary>
-        ///Classic Version: If bytegrid_haschanged[] : black or white, depending on isalive[]
-        ///</summary>
-        public void BytegridToColorReduced()
-        {
-            for (int i = 0; i < 900; i++)
-            {
-                if (bytegrid_haschanged[i])
-                {
-                    if (!isalive[i])
-                        colorgrid[i] = dead_white;
-
-                    if (isalive[i])
-                        colorgrid[i] = full_black;
-                }
-            }
-        }
-        ///<summary>
         ///<para>Handles Classic Version Color Update</para>
         ///<para>BgridToColorReduced(); If bgrid_haschanged[] Update Backcolor</para>
         ///</summary>
         private void ReducedUpdateColorAll()
         {
-            BytegridToColorReduced();
+           
 
             for (int i = 0; i < 900; i++)
             {
                 if(bytegrid_haschanged[i])
-                    buttons[i].BackColor = colorgrid[i];
+                    buttons[i].BackColor = ByteToColor(bytegrid[i]);
             }
         }
 
-        /// <summary>
-        /// if (btgrid_haschanged[]) translates bytegrid to colorgrid
-        /// </summary>
-        public void BytegridToColor()
-        {
-            for (int i = 0; i < 900; i++)
-            {
-                if (bytegrid_haschanged[i])
-                {
-                    if (bytegrid[i] == 0)
-                        colorgrid[i] = dead_white;
-                    else if (bytegrid[i] == 1)
-                        colorgrid[i] = mygrey1;
-                    else if (bytegrid[i] == 2)
-                        colorgrid[i] = mygrey2;
-                    else if (bytegrid[i] == 3)
-                        colorgrid[i] = mygrey3;
-                    else
-                        colorgrid[i] = full_black;
-                }
-            }
-        }
-        /// <summary>
-        /// <para>Handles Designer View: if dsgn_bgrid_hscnged[] or bgid_hscnged[]</para>
-        /// <para>colorgrid[] = bytegrid[] + designer_bytegrid_plus[]</para>
-        /// </summary>
-        public void BytegridToColorDesigner()
-        {
-            
-            for (int i = 0; i < 900; i++)
-            {
-                if (designer_bytegrid_haschanged[i] || bytegrid_haschanged[i])
-                {
-                   
-                    if (bytegrid[i] + designer_bytegrid_plus[i] >= 4)
-                        colorgrid[i] = full_black;
-                    else if (bytegrid[i] + designer_bytegrid_plus[i] == 0)
-                        colorgrid[i] = dead_white;
-                    else if (bytegrid[i] + designer_bytegrid_plus[i] == 1)
-                        colorgrid[i] = mygrey1;
-                    else if (bytegrid[i] + designer_bytegrid_plus[i] == 2)
-                        colorgrid[i] = mygrey2;
-                    else if (bytegrid[i] + designer_bytegrid_plus[i] == 3)
-                        colorgrid[i] = mygrey3;
-                   
-                }
-            }
-           
-        }
         /// <summary>
         /// BgridToClr(); for all 900 buttons where bgrid_haschanged[]: Updates color from Colorgrid
         /// </summary>
+        //private void UpdateColorAll()
+        //{
+        //    List<BorderlessButton> white = new List<BorderlessButton>();
+        //    List<BorderlessButton> grey1 = new List<BorderlessButton>();
+        //    List<BorderlessButton> grey2 = new List<BorderlessButton>();
+        //    List<BorderlessButton> grey3 = new List<BorderlessButton>();
+        //    List<BorderlessButton> black = new List<BorderlessButton>();
+        //    for(int i = 0; i<900; i++)
+        //    {
+        //        if (bytegrid_haschanged[i])
+        //        {
+        //            if (bytegrid[i] == 0)
+        //                white.Add(buttons[i]);
+        //            else if (bytegrid[i] == 1)
+        //                grey1.Add(buttons[i]);
+        //            else if (bytegrid[i] == 2)
+        //                grey2.Add(buttons[i]);
+        //            else if (bytegrid[i] == 3)
+        //                grey3.Add(buttons[i]);
+        //            else
+        //                black.Add(buttons[i]);
+        //        }
+        //    }
+
+        //    Parallel.ForEach(white, button =>
+        //    {
+        //        button.BackColor = dead_white;
+        //    });
+        //    Parallel.ForEach(grey1, button =>
+        //    {
+        //        button.BackColor = mygrey1;
+        //    });
+        //    Parallel.ForEach(grey2, button =>
+        //    {
+        //        button.BackColor = mygrey2;
+        //    });
+        //    Parallel.ForEach(grey3, button =>
+        //    {
+        //        button.BackColor = mygrey3;
+        //    });
+        //    Parallel.ForEach(black, button =>
+        //    {
+        //        button.BackColor = full_black;
+        //    });
+        //}
         private void UpdateColorAll()
         {
-            BytegridToColor();
+            Parallel.ForEach(bytegrid, new ParallelOptions() { MaxDegreeOfParallelism = Environment.ProcessorCount }, (ele, state, index) =>
+              {
 
-            for (int i = 0; i < 900; i++)
-            {
-                if (bytegrid_haschanged[i])
-                    buttons[i].BackColor = colorgrid[i];
-            }
+                  if (bytegrid_haschanged[index])
+                  {
+                      if (ele == 0)
+                          buttons[index].BackColor = dead_white;
+                      else if (ele == 1)
+                          buttons[index].BackColor = mygrey1;
+                      else if (ele == 2)
+                          buttons[index].BackColor = mygrey2;
+                      else if (ele == 3)
+                          buttons[index].BackColor = mygrey3;
+                      else
+                          buttons[index].BackColor = full_black;
+
+
+                  }
+              }); ;
         }
+        //private void UpdateColorAll()
+        //{
+        //    for (int i = 0; i < 900; i++)
+        //    {
+        //        if (bytegrid_haschanged[i])
+        //        {
+        //            if (bytegrid[i] == 0)
+        //                buttons[i].BackColor = dead_white;
+        //            else if (bytegrid[i] == 1)
+        //                buttons[i].BackColor = mygrey1;
+        //            else if (bytegrid[i] == 2)
+        //                buttons[i].BackColor = mygrey2;
+        //            else if (bytegrid[9] == 3)
+        //                buttons[i].BackColor = mygrey3;
+        //            else
+        //                buttons[i].BackColor = full_black;
+
+
+        //        }
+        //    }
+        //}
         /// <summary>
         /// BgridToClrDesigner(); for all 900 buttons where dsgn-/ ||_bgrid_hscnged[]: Updates buttons from Colorgrid
         /// </summary>
         private void UpdateColorAllDesigner()
         {
-            BytegridToColorDesigner();
+            
 
             for (int i = 0; i < 900; i++)
             {
-                if (designer_bytegrid_haschanged[i] || bytegrid_haschanged[i] )
-                    buttons[i].BackColor = colorgrid[i];
+                if (designer_bytegrid_haschanged[i] || bytegrid_haschanged[i])
+                    buttons[i].BackColor = ByteToColor( (byte) (bytegrid[i] + designer_bytegrid_plus[i]));
             }
         }
         /// <summary>
         /// Designer: For all nbors: dsgn_bgrid_hscnged[nbor] = true; dsng_brig_plus[nbor]++
         /// </summary>
         /// <param name="bnumber">number of relevant button</param>
-        private void DesignerNeighborsInc(int bnumber)
+        private bool DesignerNeighborsInc(int bnumber)
         {
             
             for (int i = 0; i < 8; i++)
@@ -885,13 +831,13 @@ namespace WindowsFormsApp1
                 designer_bytegrid_haschanged[n_bors] = true;
                 designer_bytegrid_plus[n_bors]++;
             }
-            
+            return true;
         }
         /// <summary>
          /// Designer: For all nbors: dsgn_bgrid_hscnged[nbor] = true; dsng_brig_plus[nbor]--
          /// </summary>
          /// <param name="bnumber">number of relevant button</param>
-        private void DesignerNeighborsDec(int bnumber)
+        private bool DesignerNeighborsDec(int bnumber)
         {
             
             for (int i = 0; i < 8; i++)
@@ -900,6 +846,7 @@ namespace WindowsFormsApp1
                 designer_bytegrid_haschanged[n_bors] = true;
                 designer_bytegrid_plus[n_bors]--;
             }
+            return true;
             
         }
         /// <summary>
@@ -935,39 +882,65 @@ namespace WindowsFormsApp1
         /// </summary>
         private void BytegridChangeAction()
         {
+            bool branchless1;
+            bool branchless2;
             for (int i = 0; i < 900; i++)
             {
-                if (bytegrid_new[i] < bytegrid[i])
-                {
-                    bytegrid_haschanged[i] = true;
-                    NeighborGradientSumDec(i);
-
-                    if (bytegrid_new[i] == 0)
-                    {
-                        isalive[i] = false;
-                    }
-                    if (bytegrid_new[i] == 2)
-                        DesignerNeighborsDec(i);
-                    
-
-                }
-                else if (bytegrid_new[i] > bytegrid[i])
-                {
-                    bytegrid_haschanged[i] = true;
-                    NeighborGradientSumInc(i);
-                    isalive[i] = true;
-
-                    if(bytegrid_new[i] == 3)
-                        DesignerNeighborsInc(i);
-                    
-                }
-                else
-                {
-                  
-                    bytegrid_haschanged[i] = false;
-                }
+                branchless1 = (bytegrid_new[i] < bytegrid[i]) && 
+                    ((bytegrid_haschanged[i] = true) && 
+                    NeighborGradientSumDec(i) &&
+                        ((bytegrid_new[i] == 0 && 
+                            !(isalive[i] = false)) || true
+                        ) &&
+                        (bytegrid_new[i] == 2 && 
+                            DesignerNeighborsDec(i)|| true)
+                    );
+                branchless2 = (!branchless1 && bytegrid_new[i] > bytegrid[i]) &&
+                                 (bytegrid_haschanged[i] = true) &&
+                                 NeighborGradientSumInc(i) &&
+                                 (isalive[i] = true) &&
+                                    ((bytegrid_new[i] == 3) &&
+                                        DesignerNeighborsInc(i) || true);
+                branchless1 =  !branchless1 && !branchless2 && 
+                        !(bytegrid_haschanged[i] = false);
             }
         }
+        //private void SAVEBytegridChangeAction()
+        //{
+        //    for (int i = 0; i < 900; i++)
+        //    {
+        //        if (bytegrid_new[i] < bytegrid[i])
+        //        {
+        //            bytegrid_haschanged[i] = true;
+        //            NeighborGradientSumDec(i);
+
+        //            if (bytegrid_new[i] == 0)
+        //            {
+        //                isalive[i] = false;
+        //            }
+        //            if (bytegrid_new[i] == 2)
+        //                DesignerNeighborsDec(i);
+
+
+        //        }
+        //        else if (bytegrid_new[i] > bytegrid[i])
+        //        {
+        //            bytegrid_haschanged[i] = true;
+        //            NeighborGradientSumInc(i);
+        //            isalive[i] = true;
+
+        //            if (bytegrid_new[i] == 3)
+        //                DesignerNeighborsInc(i);
+
+        //        }
+        //        else
+        //        {
+
+        //            bytegrid_haschanged[i] = false;
+        //        }
+        //    }
+        //}
+
         /// <summary>
         /// calls classic: TimerOnTick(); Mod: ModifiedTimerOnTick()
         ///<para>calls Set RuleSet </para>
@@ -975,11 +948,17 @@ namespace WindowsFormsApp1
         /// </summary>
         private void Timer1_Tick(object sender, EventArgs e)
         {
-            tickdelegate(sender, e);
+            float alive_gradient_avg;
+            stat_gradientsum_all += stat_alivegradient_sum;
+            tickdelegate?.Invoke(sender, e);
             
             gamemode();
-            
+
             generation_count++;
+            if (generation_count == 500)
+                PauseGame();
+            alive_gradient_avg = stat_gradientsum_all / generation_count;
+            AvgGradientSum.Text = alive_gradient_avg.ToString("0.00");
             Generation_Counter_label.Text = generation_count.ToString();
            
         }
@@ -1060,7 +1039,7 @@ namespace WindowsFormsApp1
         /// <returns></returns>
         private bool ResetGame()
         {
-            DisableAllBorderlessButtons();
+            
             PauseGame();
 
 
@@ -1081,6 +1060,7 @@ namespace WindowsFormsApp1
                 generation_count = 0;
                 stat_alivecount = 0;
                 stat_alivegradient_sum = 0;
+                stat_gradientsum_all = 0;
               
                 for (int i = 0; i < 900; i++)
                 {
@@ -1090,16 +1070,16 @@ namespace WindowsFormsApp1
                     hasaliveneighbors[i] = false;
                     designer_bytegrid_haschanged[i] = false;
                     designer_bytegrid_plus[i] = 0;
-                    colorgrid[i] = dead_white;
+                   
                     aliveneighbors_count[i] = 0;
                     isalive[i] = false;
                     neighbors_gradient_sum[i] = 0;
                 }
-                EnableAllBorderlessButtons();
+               
                 return true;
             }
 
-            EnableAllBorderlessButtons();
+           
             return false;
         }
 
@@ -1144,7 +1124,9 @@ namespace WindowsFormsApp1
         private void ModifiedGameSettingsChange()
         {
             version = 1;
-            tickdelegate = ModifiedTimerOnTick;
+            YAxisComboBox.SelectedItem = "Summe Gradienten";
+            //tickdelegate = ModifiedTimerOnTick;
+            
         }
         /// <summary>
         /// Randomizes all Buttons according to current gamemode. Doesnt Ask. Has to be handled in the method calling
@@ -1417,16 +1399,17 @@ namespace WindowsFormsApp1
 
         private void GenerateSymmetricSmallXY()
         {
-            byte range = 3;
+            byte range = 5;
             Random rnd = new Random();
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < range; i++)
             {
-                for (int j = 0; j < 4; j++)
+                for (int j = 0; j < range; j++)
                 {
-                    int n1 = 435 - (30 + 1) * range + 30 * j + i + 1 + 30;
-                    int n2 = 436 - (30 - 1) * range + 30 * j - i - 1 + 30;
-                    int n3 = 465 + (30 - 1) * range - 30 * j + i + 1 - 30;
-                    int n4 = 466 + (30 + 1) * range - 30 * j - i - 1 - 30;
+                    int n1 = 435 - (30 + 1) * range + 30 * j + i  + 30;
+                    int n2 = 436 - (30 - 1) * range + 30 * j - i - 2 + 30;
+                    int n3 = 465 + (30 - 1) * range - 30 * j + i   - 30;
+                    int n4 = 466 + (30 + 1) * range - 30 * j - i - 2 - 30;
+                    
                     if (version == 1)
                     {
                         switch (rnd.Next(0, 5))
@@ -1653,6 +1636,464 @@ namespace WindowsFormsApp1
 
             }
         }
+
+        private void GenerateFullSymmetric() 
+        {
+            byte range = 12;
+            Random rnd = new Random();
+            
+            for (int i = 0; i < range ; i++)
+            {
+                for (int j = 0; j < range - i  ; j++)
+                {
+                    
+
+                    int n1 = 435 - (30 + 1) * range + 30 * i + j + i  + 30;
+                    int n12 =  n1 + (30 - 1)  * j;
+                    int n2 = 436 - (30 - 1) * range + 30 * i - j - i - 2 + 30;
+                    int n22 = n2 + (30 + 1) * j;
+                    int n3 = 465 + (30 - 1) * range - 30 * i + j + i  - 30;
+                    int n32 = n3 - (30 + 1) * j;
+                    int n4 = 466 + (30 + 1) * range - 30 * i - j - i - 2 - 30;
+                    int n42 = n4 - (30 - 1) * j;
+
+
+                    if (version == 1)
+                    {
+                        switch (rnd.Next(0, 5))
+                        {
+                            case 0:
+                                buttons[n1].BackColor = dead_white;
+                                bytegrid[n1] = 0;
+                                isalive[n1] = false;
+
+                                buttons[n2].BackColor = dead_white;
+                                bytegrid[n2] = 0;
+                                isalive[n2] = false;
+
+                                buttons[n3].BackColor = dead_white;
+                                bytegrid[n3] = 0;
+                                isalive[n3] = false;
+
+                                buttons[n4].BackColor = dead_white;
+                                bytegrid[n4] = 0;
+                                isalive[n4] = false;
+
+                                buttons[n12].BackColor = dead_white;
+                                bytegrid[n12] = 0;
+                                isalive[n12] = false;
+
+                                buttons[n22].BackColor = dead_white;
+                                bytegrid[n22] = 0;
+                                isalive[n22] = false;
+
+                                buttons[n32].BackColor = dead_white;
+                                bytegrid[n32] = 0;
+                                isalive[n32] = false;
+
+                                buttons[n42].BackColor = dead_white;
+                                bytegrid[n42] = 0;
+                                isalive[n42] = false;
+
+                                break;
+                            case 1:
+                                buttons[n1].BackColor = mygrey1;
+                                bytegrid[n1] = 1;
+                                AliveNeighborsIncBool(n1);
+                                IsAliveAndStatInc(n1);
+                                NeighborGradientSumInc(n1);
+
+                                buttons[n2].BackColor = mygrey1;
+                                bytegrid[n2] = 1;
+                                AliveNeighborsIncBool(n2);
+                                IsAliveAndStatInc(n2);
+                                NeighborGradientSumInc(n2);
+
+                                buttons[n3].BackColor = mygrey1;
+                                bytegrid[n3] = 1;
+                                AliveNeighborsIncBool(n3);
+                                IsAliveAndStatInc(n3);
+                                NeighborGradientSumInc(n3);
+
+                                buttons[n4].BackColor = mygrey1;
+                                bytegrid[n4] = 1;
+                                AliveNeighborsIncBool(n4);
+                                IsAliveAndStatInc(n4);
+                                NeighborGradientSumInc(n4);
+                                if (n1 != n12)
+                                {
+                                    buttons[n12].BackColor = mygrey1;
+                                    bytegrid[n12] = 1;
+                                    AliveNeighborsIncBool(n12);
+                                    IsAliveAndStatInc(n12);
+                                    NeighborGradientSumInc(n12);
+
+                                    buttons[n22].BackColor = mygrey1;
+                                    bytegrid[n22] = 1;
+                                    AliveNeighborsIncBool(n22);
+                                    IsAliveAndStatInc(n22);
+                                    NeighborGradientSumInc(n22);
+
+                                    buttons[n32].BackColor = mygrey1;
+                                    bytegrid[n32] = 1;
+                                    AliveNeighborsIncBool(n32);
+                                    IsAliveAndStatInc(n32);
+                                    NeighborGradientSumInc(n32);
+
+                                    buttons[n42].BackColor = mygrey1;
+                                    bytegrid[n42] = 1;
+                                    AliveNeighborsIncBool(n42);
+                                    IsAliveAndStatInc(n42);
+                                    NeighborGradientSumInc(n42);
+
+                                }
+                                break;
+                            case 2:
+                                buttons[n1].BackColor = mygrey2;
+                                bytegrid[n1] = 2;
+                                AliveNeighborsIncBool(n1);
+                                IsAliveAndStatInc(n1);
+                                for (int k = 0; k < 2; k++)
+                                {
+                                    NeighborGradientSumInc(n1);
+                                }
+
+                                buttons[n2].BackColor = mygrey2;
+                                bytegrid[n2] = 2;
+                                AliveNeighborsIncBool(n2);
+                                IsAliveAndStatInc(n2);
+                                for (int k = 0; k < 2; k++)
+                                {
+                                    NeighborGradientSumInc(n2);
+                                }
+
+                                buttons[n3].BackColor = mygrey2;
+                                bytegrid[n3] = 2;
+                                AliveNeighborsIncBool(n3);
+                                IsAliveAndStatInc(n3);
+                                for (int k = 0; k < 2; k++)
+                                {
+                                    NeighborGradientSumInc(n3);
+                                }
+
+                                buttons[n4].BackColor = mygrey2;
+                                bytegrid[n4] = 2;
+                                AliveNeighborsIncBool(n4);
+                                IsAliveAndStatInc(n4);
+                                for (int k = 0; k < 2; k++)
+                                {
+                                    NeighborGradientSumInc(n4);
+                                }
+
+                                if (n1 != n12)
+                                {
+                                    buttons[n12].BackColor = mygrey2;
+                                    bytegrid[n12] = 2;
+                                    AliveNeighborsIncBool(n12);
+                                    IsAliveAndStatInc(n12);
+                                    for (int k = 0; k < 2; k++)
+                                    {
+                                        NeighborGradientSumInc(n12);
+                                    }
+
+                                    buttons[n22].BackColor = mygrey2;
+                                    bytegrid[n22] = 2;
+                                    AliveNeighborsIncBool(n22);
+                                    IsAliveAndStatInc(n22);
+                                    for (int k = 0; k < 2; k++)
+                                    {
+                                        NeighborGradientSumInc(n22);
+                                    }
+
+                                    buttons[n32].BackColor = mygrey2;
+                                    bytegrid[n32] = 2;
+                                    AliveNeighborsIncBool(n32);
+                                    IsAliveAndStatInc(n32);
+                                    for (int k = 0; k < 2; k++)
+                                    {
+                                        NeighborGradientSumInc(n32);
+                                    }
+
+                                    buttons[n42].BackColor = mygrey2;
+                                    bytegrid[n42] = 2;
+                                    AliveNeighborsIncBool(n42);
+                                    IsAliveAndStatInc(n42);
+                                    for (int k = 0; k < 2; k++)
+                                    {
+                                        NeighborGradientSumInc(n42);
+                                    }
+                                }
+                                break;
+                            case 3:
+                                buttons[n1].BackColor = mygrey3;
+                                bytegrid[n1] = 3;
+                                AliveNeighborsIncBool(n1);
+                                IsAliveAndStatInc(n1);
+                                DesignerNeighborsInc(n1); //Temp if u want
+                                for (int k = 0; k < 3; k++)
+                                {
+                                    NeighborGradientSumInc(n1);
+                                }
+
+                                buttons[n2].BackColor = mygrey3;
+                                bytegrid[n2] = 3;
+                                AliveNeighborsIncBool(n2);
+                                IsAliveAndStatInc(n2);
+                                DesignerNeighborsInc(n2); //same
+                                for (int k = 0; k < 3; k++)
+                                {
+                                    NeighborGradientSumInc(n2);
+                                }
+
+                                buttons[n3].BackColor = mygrey3;
+                                bytegrid[n3] = 3;
+                                AliveNeighborsIncBool(n3);
+                                IsAliveAndStatInc(n3);
+                                DesignerNeighborsInc(n3); //Temp if u want
+                                for (int k = 0; k < 3; k++)
+                                {
+                                    NeighborGradientSumInc(n3);
+                                }
+
+                                buttons[n4].BackColor = mygrey3;
+                                bytegrid[n4] = 3;
+                                AliveNeighborsIncBool(n4);
+                                IsAliveAndStatInc(n4);
+                                DesignerNeighborsInc(n4); //same
+                                for (int k = 0; k < 3; k++)
+                                {
+                                    NeighborGradientSumInc(n4);
+                                }
+                                if (n1 != n12)
+                                {
+                                    buttons[n12].BackColor = mygrey3;
+                                    bytegrid[n12] = 3;
+                                    AliveNeighborsIncBool(n12);
+                                    IsAliveAndStatInc(n12);
+                                    DesignerNeighborsInc(n12); //Temp if u want
+                                    for (int k = 0; k < 3; k++)
+                                    {
+                                        NeighborGradientSumInc(n12);
+                                    }
+
+                                    buttons[n22].BackColor = mygrey3;
+                                    bytegrid[n22] = 3;
+                                    AliveNeighborsIncBool(n22);
+                                    IsAliveAndStatInc(n22);
+                                    DesignerNeighborsInc(n22); //same
+                                    for (int k = 0; k < 3; k++)
+                                    {
+                                        NeighborGradientSumInc(n22);
+                                    }
+
+                                    buttons[n32].BackColor = mygrey3;
+                                    bytegrid[n32] = 3;
+                                    AliveNeighborsIncBool(n32);
+                                    IsAliveAndStatInc(n32);
+                                    DesignerNeighborsInc(n32); //Temp if u want
+                                    for (int k = 0; k < 3; k++)
+                                    {
+                                        NeighborGradientSumInc(n32);
+                                    }
+
+                                    buttons[n42].BackColor = mygrey3;
+                                    bytegrid[n42] = 3;
+                                    AliveNeighborsIncBool(n42);
+                                    IsAliveAndStatInc(n42);
+                                    DesignerNeighborsInc(n42); //same
+                                    for (int k = 0; k < 3; k++)
+                                    {
+                                        NeighborGradientSumInc(n42);
+                                    }
+                                }
+                                break;
+                            case 4:
+                                buttons[n1].BackColor = full_black;
+                                bytegrid[n1] = 4;
+                                DesignerNeighborsInc(n1);
+                                AliveNeighborsIncBool(n1);
+                                IsAliveAndStatInc(n1);
+                                for (int k = 0; k < 4; k++)
+                                {
+                                    NeighborGradientSumInc(n1);
+                                }
+
+                                buttons[n2].BackColor = full_black;
+                                bytegrid[n2] = 4;
+                                DesignerNeighborsInc(n2);
+                                AliveNeighborsIncBool(n2);
+                                IsAliveAndStatInc(n2);
+                                for (int k = 0; k < 4; k++)
+                                {
+                                    NeighborGradientSumInc(n2);
+                                }
+
+                                buttons[n3].BackColor = full_black;
+                                bytegrid[n3] = 4;
+                                DesignerNeighborsInc(n3);
+                                AliveNeighborsIncBool(n3);
+                                IsAliveAndStatInc(n3);
+                                for (int k = 0; k < 4; k++)
+                                {
+                                    NeighborGradientSumInc(n3);
+                                }
+
+                                buttons[n4].BackColor = full_black;
+                                bytegrid[n4] = 4;
+                                DesignerNeighborsInc(n4);
+                                AliveNeighborsIncBool(n4);
+                                IsAliveAndStatInc(n4);
+                                for (int k = 0; k < 4; k++)
+                                {
+                                    NeighborGradientSumInc(n4);
+                                }
+                                if (n1 != n12)
+                                {
+                                    buttons[n12].BackColor = full_black;
+                                    bytegrid[n12] = 4;
+                                    DesignerNeighborsInc(n12);
+                                    AliveNeighborsIncBool(n12);
+                                    IsAliveAndStatInc(n12);
+                                    for (int k = 0; k < 4; k++)
+                                    {
+                                        NeighborGradientSumInc(n12);
+                                    }
+
+                                    buttons[n22].BackColor = full_black;
+                                    bytegrid[n22] = 4;
+                                    DesignerNeighborsInc(n22);
+                                    AliveNeighborsIncBool(n22);
+                                    IsAliveAndStatInc(n22);
+                                    for (int k = 0; k < 4; k++)
+                                    {
+                                        NeighborGradientSumInc(n22);
+                                    }
+
+                                    buttons[n32].BackColor = full_black;
+                                    bytegrid[n32] = 4;
+                                    DesignerNeighborsInc(n32);
+                                    AliveNeighborsIncBool(n32);
+                                    IsAliveAndStatInc(n32);
+                                    for (int k = 0; k < 4; k++)
+                                    {
+                                        NeighborGradientSumInc(n32);
+                                    }
+
+                                    buttons[n42].BackColor = full_black;
+                                    bytegrid[n42] = 4;
+                                    DesignerNeighborsInc(n42);
+                                    AliveNeighborsIncBool(n42);
+                                    IsAliveAndStatInc(n42);
+                                    for (int k = 0; k < 4; k++)
+                                    {
+                                        NeighborGradientSumInc(n42);
+                                    }
+                                }
+                                break;
+
+                            default:
+                                break;
+                        }
+                    }
+                    else if (version == 0)
+                    {
+                        int rand = rnd.Next(0, 2);
+                        
+                        switch (rand)
+                        {
+                            case 0:
+                                buttons[n1].BackColor = dead_white;
+                                bytegrid[n1] = 0;
+                                isalive[n1] = false;
+
+                                buttons[n2].BackColor = dead_white;
+                                bytegrid[n2] = 0;
+                                isalive[n2] = false;
+
+                                buttons[n3].BackColor = dead_white;
+                                bytegrid[n3] = 0;
+                                isalive[n3] = false;
+
+                                buttons[n4].BackColor = dead_white;
+                                bytegrid[n4] = 0;
+                                isalive[n4] = false;
+
+                                buttons[n12].BackColor = dead_white;
+                                bytegrid[n12] = 0;
+                                isalive[n12] = false;
+
+                                buttons[n22].BackColor = dead_white;
+                                bytegrid[n22] = 0;
+                                isalive[n22] = false;
+
+                                buttons[n32].BackColor = dead_white;
+                                bytegrid[n32] = 0;
+                                isalive[n32] = false;
+
+                                buttons[n42].BackColor = dead_white;
+                                bytegrid[n42] = 0;
+                                isalive[n42] = false;
+
+                                break;
+                            case 1:
+                                buttons[n1].BackColor = full_black;
+                                bytegrid[n1] = 4;
+                                AliveNeighborsIncBool(n1);
+                                IsAliveAndStatInc(n1);
+                                NeighborGradientSumInc(n1);
+
+                                buttons[n2].BackColor = full_black;
+                                bytegrid[n2] = 4;
+                                AliveNeighborsIncBool(n2);
+                                IsAliveAndStatInc(n2);
+                                NeighborGradientSumInc(n2);
+
+                                buttons[n3].BackColor = full_black;
+                                bytegrid[n3] = 4;
+                                AliveNeighborsIncBool(n3);
+                                IsAliveAndStatInc(n3);
+                                NeighborGradientSumInc(n3);
+
+                                buttons[n4].BackColor = full_black;
+                                bytegrid[n4] = 4;
+                                AliveNeighborsIncBool(n4);
+                                IsAliveAndStatInc(n4);
+                                NeighborGradientSumInc(n4);
+                                if (n1 != n12)
+                                {
+                                    buttons[n12].BackColor = full_black;
+                                    bytegrid[n12] = 4;
+                                    AliveNeighborsIncBool(n12);
+                                    IsAliveAndStatInc(n12);
+                                    NeighborGradientSumInc(n12);
+
+                                    buttons[n22].BackColor = full_black;
+                                    bytegrid[n22] = 4;
+                                    AliveNeighborsIncBool(n22);
+                                    IsAliveAndStatInc(n22);
+                                    NeighborGradientSumInc(n22);
+
+                                    buttons[n32].BackColor = full_black;
+                                    bytegrid[n32] = 4;
+                                    AliveNeighborsIncBool(n32);
+                                    IsAliveAndStatInc(n32);
+                                    NeighborGradientSumInc(n32);
+
+                                    buttons[n42].BackColor = full_black;
+                                    bytegrid[n42] = 4;
+                                    AliveNeighborsIncBool(n42);
+                                    IsAliveAndStatInc(n42);
+                                    NeighborGradientSumInc(n42);
+                                    
+                                }
+                                break;
+                        }
+                    }
+                }
+
+            }
+        }
+
         private void Randomxysymmsmall_Click(object sender, EventArgs e)
         {
             if (gameexists && !ResetGame())
@@ -1944,6 +2385,7 @@ namespace WindowsFormsApp1
         private void alsVorlageSpeichernToolStripMenuItem_Click(object sender, EventArgs e)
         {
             ControlTextBox.Text = "";
+            ControlTextBox.ReadOnly = false;
             label1.Show();
             button_submit_template.Show();
 
@@ -1955,7 +2397,7 @@ namespace WindowsFormsApp1
 
         private void button_submit_template_Click(object sender, EventArgs e)
         {
-            
+            ControlTextBox.ReadOnly = true;
                 string tmp_fileName = ControlTextBox.Text+ ".txt";
             string fullPath = Path.GetFullPath(tmp_fileName);
             string directoryName = Path.GetDirectoryName(fullPath);
@@ -2049,6 +2491,45 @@ namespace WindowsFormsApp1
 
         }
 
-        
+       
+        private void AddTemplateEvent(object sender, EventArgs e)
+        {
+
+        }
+
+        private void YAxisComboBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if ((string)((ComboBox)sender).SelectedItem == "Am Leben")
+            {
+              
+            }
+            else if ((string)((ComboBox)sender).SelectedItem == "Summe Gradienten")
+            {
+              
+            }
+            else if ((string)((ComboBox)sender).SelectedItem == "Gradienten Schnitt")
+            {
+                
+            }
+            else if ((string)((ComboBox)sender).SelectedItem == "Keins")
+            {
+              
+            
+            }
+        }
+
+        private void RandomFull_button_Click(object sender, EventArgs e)
+        {
+            if (gameexists && !ResetGame())
+                return;
+            GenerateFullSymmetric();
+            gameexists = true;
+            game_has_started = false;
+        }
+
+        private void eigeneEingabenToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            
+        }
     }
 }
